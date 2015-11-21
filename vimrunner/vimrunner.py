@@ -16,16 +16,31 @@ they put in this gem.
 """
 
 import os.path
-import multiprocessing
 import subprocess
 import random
 import time
+import platform
+from distutils.spawn import find_executable
 
 #vimrc = os.path.join(os.path.dirname(
 #    os.path.abspath(__file__)), 'default_vimrc')
 
-
 ### utility functions ###
+def on_windows():
+    return platform.system() == 'Windows'
+
+
+def get_terminal_cmd():
+    """returns an arguments list to run a command in a new terminal
+    instance."""
+    # x-terminal-emulator is not available on Windows.
+    if on_windows():
+        return ['cmd.exe', '/C']
+    # x-terminal-emulator chooses the default terminal in a cross-desktop
+    # way (debian, ubuntu, mint, etc.)
+    return ['x-terminal-emulator', '-e']
+
+
 def create_vim_list(values):
     """creates the Vim editor's equivalent of python's repr(a_list).
 
@@ -107,8 +122,7 @@ class Server(object):
         self.executable = executable if os.path.isabs(executable) else \
             self._get_abs_path(executable)
 
-        vimrc = vimrc if vimrc else Server.vimrc
-        self.vimrc = '-u %s' % vimrc
+        self.vimrc = vimrc if vimrc else Server.vimrc
         self.noplugin = '--noplugin' if noplugin else ''
         self.extra_args = extra_args
         self.cmd = None
@@ -118,13 +132,12 @@ class Server(object):
         """Utility function used by start_*() family of functions.
         Returns nothing."""
         # format arguments list for the Vim subprocess, order matters
-        self.vim_args = [self.executable, self.vimrc, self.noplugin,
-                         '--servername', self.name]
+        self.cmd = [self.executable, '-u', self.vimrc, self.noplugin,
+                    '--servername', self.name]
         # get rid of empty strings, False arguments
-        self.vim_args = [arg for arg in self.vim_args if arg]
+        self.cmd = [arg for arg in self.cmd if arg]
         # add extra vim arguments
-        self.vim_args.extend(self.extra_args)
-        self.cmd = " ".join(self.vim_args)
+        self.cmd.extend(self.extra_args)
         # Eg:
         # >>> self.cmd
         # "/usr/bin/gvim -n --noplugin --servername VIMRUNNER#1"
@@ -142,18 +155,9 @@ class Server(object):
 
         Returns a client connected to Vim server.
         """
-        self.server = multiprocessing.Process(
-            name=self.name,
-            target=subprocess.call,
-            args=(self.cmd,),
-            kwargs={'shell': True}
-            # we need to start in a shell otherwise vim complains with error:
-            # Garbage after option argument: "-u /path/to/custom/vimrc"
-        )
         if not testing:
-            self.server.start()
+            self.server = subprocess.Popen(args=self.cmd)
             self.check_is_running(timeout)
-
         return Client(self)
 
     def start_headless(self, timeout=5, testing=False):
@@ -192,9 +196,7 @@ class Server(object):
         terminal so that the test script's output doesn't get polluted by vim.
         """
         self._format_vim_args()
-        self.cmd = "x-terminal-emulator -e '%s'" % self.cmd
-        # x-terminal-emulator chooses the default terminal in a cross-desktop
-        # way (debian, ubuntu, mint, etc.)
+        self.cmd = get_terminal_cmd() + self.cmd
         return self.start()
 
     def start_gvim(self):
@@ -282,10 +284,10 @@ class Server(object):
 
         Returns a List of String server names currently running.
         """
-        path = subprocess.check_output([self.executable,
+        return (subprocess.check_output([self.executable,
                                         '--serverlist'])
-        path = path.decode('utf-8')
-        return path.split('\n')
+                          .decode('utf-8')
+                          .splitlines())
 
     def is_running(self):
         "Returns a Boolean indicating wheather server exists and is running."
@@ -307,13 +309,8 @@ class Server(object):
 
     @staticmethod
     def _get_abs_path(exe):
-        """Uses 'which' shell command to get the absolute path of the
-        executable."""
-        path = subprocess.check_output(['which', "%s" % exe])
-        # output from subprocess, sockets etc. is bytes even in py3, so
-        # convert it to unicode
-        path = path.decode('utf-8')
-        return path.strip('\n')
+        """Returns the absolute path of the executable."""
+        return find_executable(exe)
 
 
 class Client(object):
