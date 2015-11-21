@@ -13,6 +13,7 @@ import os.path
 import unittest
 import subprocess
 import time
+from distutils.spawn import find_executable
 
 # insert the directory containing the directory with this file in python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -41,9 +42,7 @@ class TestServerInit(unittest.TestCase):
 
     def test_executable_when_default(self):
         vim = Server()
-        self.assertEqual(vim.executable,
-                         subprocess.check_output(['which', 'vim']).decode(
-                             'utf-8').strip('\n'))
+        self.assertEqual(vim.executable, find_executable('vim'))
 
     def test_executable_when_given_as_arg(self):
         vim = Server(executable='/usr/local/bin/vim')
@@ -51,18 +50,14 @@ class TestServerInit(unittest.TestCase):
 
     def test_executable_when_gvim(self):
         vim = Server(executable='gvim')
-        gvim_path = subprocess.check_output(['which', 'gvim'])
-        gvim_path = gvim_path.decode('utf-8').strip('\n')
         try:
-            self.assertEqual(vim.executable, gvim_path)
+            self.assertEqual(vim.executable, find_executable('gvim'))
         except subprocess.CalledProcessError:
             return "gvim might not be installed at all."
 
     def test_get_abs_path(self):
         path = Server._get_abs_path(exe='gvim')
-        gvim_path = subprocess.check_output(['which', 'gvim'])
-        gvim_path = gvim_path.decode('utf-8').strip('\n')
-        self.assertEqual(path, gvim_path)
+        self.assertEqual(path, find_executable('gvim'))
 
     def test_vimrc_when_default(self):
         """In this case we don't want any user vimrc file."""
@@ -95,7 +90,7 @@ class TestServer(unittest.TestCase):
         try:
             # these try:except have increased by 4 times the testing time
             # because of timeout....
-            self.vim.start(testing=True, timeout=5)
+            self.vim.start(timeout=5)
         except RuntimeError:
             # raised because timeout expires - no server exists, because
             # we're testing
@@ -111,11 +106,10 @@ class TestServer(unittest.TestCase):
             # raised because timeout expires - no server exists, because
             # we're testing
             pass
-        self.assertTrue('/usr/bin/vim' in self.vim.server._args[0])
-        self.assertTrue('-n' in self.vim.server._args[0])
-        self.assertTrue('--noplugin' in self.vim.server._args[0])
-        self.assertTrue('--servername' in self.vim.server._args[0])
-        # server._args is a tuple which needs unpacking to get a list
+        self.assertTrue(find_executable('vim') in self.vim.cmd)
+        self.assertTrue('-n' in self.vim.cmd)
+        self.assertTrue('--noplugin' in self.vim.cmd)
+        self.assertTrue('--servername' in self.vim.cmd)
 
     def test_start_headless(self):
         try:
@@ -142,9 +136,11 @@ class TestServer(unittest.TestCase):
         """
         self.assertRaises(AttributeError, self.vim.kill)
 
-    def test_server_list_is_empty(self):
-        # server is not started yet
-        self.assertEqual([''], self.vim.server_list())
+    def test_no_vimrunner_in_server_list(self):
+        # No vimrunner server is started
+        vimrunner_list = [server for server in self.vim.server_list()
+                          if server.startswith('VIMRUNNER#')]
+        self.assertEqual(vimrunner_list, [])
 
     def test_is_running_when_no_server_exists(self):
         self.assertFalse(self.vim.is_running())
@@ -246,32 +242,35 @@ class TestServerFunctionalTests(unittest.TestCase):
         #client.normal('<space>')
 
         # test echo()
-        # get value of bg (background) variable
-        out = client.echo("&bg")
-        # by default it is 'light'
-        self.assertEqual('light', out)
+        # get value of v:servername variable
+        servername = client.echo("v:servername")
+        self.assertEqual(self.vim.name, servername)
         out = client.echo("\"testing echo function\"")
         self.assertEqual('testing echo function', out)
         out = client.echo('"testing echo function"')
         self.assertEqual('testing echo function', out)
 
         # test prepend_runtimepath
-        client.prepend_runtimepath('/home')
+        client.prepend_runtimepath(__file__)
         runtimepath = client.echo("&runtimepath")
-        self.assertEqual('/home', runtimepath.split(",")[0])
+        self.assertTrue(__file__ in runtimepath.split(","))
 
         # test read_buffer
         one_line = client.read_buffer("6")
         self.assertEqual('sixth line is the same', one_line)
         two_lines = client.read_buffer("6", "7")
-        self.assertEqual("sixth line is the same\nseventh line is fun!!", two_lines)
+        self.assertEqual("sixth line is the same{0}"
+                         "seventh line is fun!!".format(os.linesep),
+                         two_lines)
 
         # test write_buffer
         client.write_buffer("3", "write to line number 3")
         self.assertEqual("write to line number 3", client.read_buffer("3"))
         client.write_buffer("'$'", ['last line', 'add after last line'])
         time.sleep(0.5)
-        self.assertEqual("last line\nadd after last line", client.read_buffer("line('$') - 1", "'$'"))
+        self.assertEqual("last line{0}"
+                         "add after last line".format(os.linesep),
+                         client.read_buffer("line('$') - 1", "'$'"))
 
         client.write_buffer("line('$') + 1", "add after last line 2")
         self.assertEqual("add after last line 2", client.read_buffer("'$'"))
