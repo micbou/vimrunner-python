@@ -10,7 +10,7 @@ environment:
         - python: 35
           arch: 64
 install:
-    - appveyor\install.bat
+    - ci\appveyor\install.bat
 build_script:
     - tox
 cache:
