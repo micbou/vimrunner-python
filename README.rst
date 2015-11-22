@@ -1,5 +1,6 @@
+#########
 Vimrunner
-======================================================================
+#########
 
 .. image:: https://travis-ci.org/micbou/vimrunner-python.svg?branch=master
     :target: https://travis-ci.org/micbou/vimrunner-python
