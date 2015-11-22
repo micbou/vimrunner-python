@@ -1,6 +1,14 @@
 Vimrunner
 ======================================================================
 
+.. image:: https://travis-ci.org/micbou/vimrunner-python.svg?branch=master
+    :target: https://travis-ci.org/micbou/vimrunner-python
+    :alt: Travis CI build status
+
+.. image:: https://ci.appveyor.com/api/projects/status/6926s3ktgs0mh9ld/branch/master?svg=true
+    :target: https://ci.appveyor.com/project/micbou/vimrunner-python
+    :alt: AppVeyor CI build status
+
 Module that implements a client and server interface useful for controlling a 
 Vim editor, started as a server, programmatically. This module could be used 
 for unit testing or integration testing for a Vim plugin written in Python. 
