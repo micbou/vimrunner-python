@@ -44,6 +44,24 @@ def create_vim_list(values):
     #return '[%s]' % ', '.join("\"%s\"" % elem for elem in values)
 
 
+# Shamelessly stolen from https://gist.github.com/edufelipe/1027906
+def check_output( *popen_args, **kwargs ):
+  """Run command with arguments and return its output as a byte string.
+  Backported from Python 2.7."""
+
+  process = subprocess.Popen( stdout=subprocess.PIPE, *popen_args, **kwargs )
+  output, unused_err = process.communicate()
+  retcode = process.poll()
+  if retcode:
+    command = kwargs.get( 'args' )
+    if command is None:
+      command = popen_args[ 0 ]
+    error = subprocess.CalledProcessError( retcode, command )
+    error.output = output
+    raise error
+  return output
+
+
 class Server(object):
     """
     Represents a remote Vim editor server. A Server has the responsibility of
@@ -272,7 +290,7 @@ class Server(object):
             remote_expr('&shiftwidth')
 
         """
-        result = subprocess.check_output(
+        result = check_output(
             [self.executable, '--servername', self.name, '--remote-expr',
              expression])
         return result.decode('utf-8')
@@ -282,8 +300,8 @@ class Server(object):
 
         Returns a List of String server names currently running.
         """
-        path = subprocess.check_output([self.executable,
-                                        '--serverlist'])
+        path = check_output([self.executable,
+                             '--serverlist'])
         path = path.decode('utf-8')
         return path.split('\n')
 
@@ -309,7 +327,7 @@ class Server(object):
     def _get_abs_path(exe):
         """Uses 'which' shell command to get the absolute path of the
         executable."""
-        path = subprocess.check_output(['which', "%s" % exe])
+        path = check_output(['which', "%s" % exe])
         # output from subprocess, sockets etc. is bytes even in py3, so
         # convert it to unicode
         path = path.decode('utf-8')

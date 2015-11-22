@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 #import vimrunner
 from vimrunner import Server
+from vimrunner.vimrunner import check_output
 
 
 class TestServerInit(unittest.TestCase):
@@ -43,7 +44,7 @@ class TestServerInit(unittest.TestCase):
     def test_executable_when_default(self):
         vim = Server()
         self.assertEqual(vim.executable,
-                         subprocess.check_output(['which', 'vim']).decode(
+                         check_output(['which', 'vim']).decode(
                              'utf-8').strip('\n'))
 
     def test_executable_when_given_as_arg(self):
@@ -52,7 +53,7 @@ class TestServerInit(unittest.TestCase):
 
     def test_executable_when_gvim(self):
         vim = Server(executable='gvim')
-        gvim_path = subprocess.check_output(['which', 'gvim'])
+        gvim_path = check_output(['which', 'gvim'])
         gvim_path = gvim_path.decode('utf-8').strip('\n')
         try:
             self.assertEqual(vim.executable, gvim_path)
@@ -61,7 +62,7 @@ class TestServerInit(unittest.TestCase):
 
     def test_get_abs_path(self):
         path = Server._get_abs_path(exe='gvim')
-        gvim_path = subprocess.check_output(['which', 'gvim'])
+        gvim_path = check_output(['which', 'gvim'])
         gvim_path = gvim_path.decode('utf-8').strip('\n')
         self.assertEqual(path, gvim_path)
 
@@ -131,7 +132,7 @@ class TestServer(unittest.TestCase):
         #self.vim.start(testing=True)
         # this test might pass or not, depending if the user has gvim installed
         try:
-            path = subprocess.check_output(['which', 'gvim'])
+            path = check_output(['which', 'gvim'])
             path = path.decode('utf-8').strip('\n')
         except subprocess.CalledProcessError:
             return unittest.skip("gvim might not be installed, so this test "
