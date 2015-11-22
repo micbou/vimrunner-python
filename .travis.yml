@@ -10,7 +10,7 @@ env:
     - TOXENV=py33
     - TOXENV=py34
 install:
-    - ./ci/travis/${TRAVIS_OS_NAME}.sh
+    - source ci/travis/${TRAVIS_OS_NAME}.sh
 script:
     - tox
 cache:
