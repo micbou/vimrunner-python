@@ -13,6 +13,7 @@ import os.path
 import unittest
 import subprocess
 import time
+from distutils.spawn import find_executable
 
 # insert the directory containing the directory with this file in python path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -111,7 +112,7 @@ class TestServer(unittest.TestCase):
             # raised because timeout expires - no server exists, because
             # we're testing
             pass
-        self.assertTrue('/usr/bin/vim' in self.vim.server._args[0])
+        self.assertTrue(find_executable('vim') in self.vim.server._args[0])
         self.assertTrue('-n' in self.vim.server._args[0])
         self.assertTrue('--noplugin' in self.vim.server._args[0])
         self.assertTrue('--servername' in self.vim.server._args[0])
