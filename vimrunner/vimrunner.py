@@ -292,20 +292,17 @@ class Server(object):
             remote_expr('&shiftwidth')
 
         """
-        result = check_output(
-            [self.executable, '--servername', self.name, '--remote-expr',
-             expression])
-        return result.decode('utf-8')
+        return check_output([self.executable,
+                             '--servername', self.name,
+                             '--remote-expr', expression]).decode('utf-8')
 
     def server_list(self):
         """Retrieves a list of names of currently running Vim servers.
 
         Returns a List of String server names currently running.
         """
-        return (subprocess.check_output([self.executable,
-                                        '--serverlist'])
-                          .decode('utf-8')
-                          .splitlines())
+        return check_output([self.executable,
+                             '--serverlist']).decode('utf-8').splitlines()
 
     def is_running(self):
         "Returns a Boolean indicating wheather server exists and is running."
