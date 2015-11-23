@@ -9,6 +9,7 @@ env:
     - TOXENV=py32
     - TOXENV=py33
     - TOXENV=py34
+    - TOXENV=py35
 install:
     - source ci/travis/${TRAVIS_OS_NAME}.sh
 script:
