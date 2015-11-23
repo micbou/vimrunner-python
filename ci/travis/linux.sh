@@ -26,4 +26,5 @@ export PATH=/tmp/vim/build/bin:$PATH
 export DISPLAY=:99.0
 sh -e /etc/init.d/xvfb start
 
+pip install --disable-pip-version-check --upgrade pip
 pip install tox
